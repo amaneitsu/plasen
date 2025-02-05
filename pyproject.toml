@@ -15,7 +15,8 @@ dependencies = [
   "pandas",
   "matplotlib",
   "numpy",
-  "satlas2"
+  "satlas2",
+  "satlas"
 ]
 license = {file = "LICENSE"}
 
