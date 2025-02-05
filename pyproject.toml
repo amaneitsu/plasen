@@ -1,0 +1,14 @@
+[project]
+name = "plasen"
+version = "0.0.1"
+authors = [
+  { name="Zhou Yan", email="yanzh@pku.edu.cn" },
+]
+description = "Pre-process and Analysis Module for PLASEN (tantative name)"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
