@@ -1,6 +1,6 @@
 [project]
 name = "plasen"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
   { name="Zhou Yan", email="yanzh@pku.edu.cn" },
 ]
@@ -20,4 +20,4 @@ dependencies = [
 license = {file = "LICENSE"}
 
 [project.urls]
-"Homepage" = "https://github.com/amaneitsu/packaging_plasen"
+"Homepage" = "https://github.com/amaneitsu/plasen"
