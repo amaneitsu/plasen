@@ -1,5 +1,3 @@
-# Example Package
+# Pre-process & Analysis Module for PLASEN
 
-This is a simple example package. You can use
-[GitHub-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+This is Pre-process and Analysis Module for PLASEN (tantative name)
