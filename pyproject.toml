@@ -11,4 +11,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-license = "MIT"
+dependencies = [
+  "pandas",
+  "matplotlib",
+  "numpy",
+  "satlas2"
+]
+license = {file = "LICENSE"}
+
+[project.urls]
+"Homepage" = "https://github.com/amaneitsu/packaging_plasen"

@@ -1,6 +1,6 @@
 import csv
 import pandas as pd
-import phys_calc
+from . import phys_calc
 import matplotlib.pyplot as plt
 import numpy as np
 import os
