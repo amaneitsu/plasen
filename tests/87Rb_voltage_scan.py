@@ -5,6 +5,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../s
 from plasen import HFS_data, HFS_fit
 from plasen import phys_calc
 
+### This is only for example. You should replace the path with your own data path.
+
 raw_data = HFS_data('Voltage')
 raw_data.read_folder('data/1747&1748(voltage scan)/scan1747.0')
 raw_data.read_folder('data/1747&1748(voltage scan)/scan1748.0')
