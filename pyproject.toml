@@ -1,10 +1,10 @@
 [project]
 name = "plasen"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Zhou Yan", email="yanzh@pku.edu.cn" },
 ]
-description = "Pre-process and Analysis Module for PLASEN (tantative name)"
+description = "Processing toolbox for LAser Spectroscopy of Exotic Nuclei."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -16,7 +16,7 @@ dependencies = [
   "matplotlib",
   "numpy",
   "satlas2",
-  "satlas"
+  "findiff"
 ]
 license = {file = "LICENSE"}
 

@@ -15,7 +15,7 @@ raw_data.read_cali_csv('example_data/1340&1341(laser scan)/cali_1737189947.37151
 raw_data.fill_cali('InitEnergy', 'ffill')
 raw_data.fill_cali('Diode', 'ffill')
 raw_data.dropna()
-raw_data.voltage_cali(gain_factor=1)
+raw_data.voltage_cali()
 raw_data.diode_cali(384227848.5512209 * phys_calc.MHz_to_invcm)
 raw_data.doppler_shift(mass = 86.90918053)
 raw_data.wavenumber_cut(12815,12817)
@@ -27,6 +27,6 @@ rates = raw_data.count_rate(bin_width=10, is_draw=False, save_path='tests/87Rb_l
 
 fit = HFS_fit(rates)
 fit.import_json('example_data/87Rb_I=1.5.json')
-fit.voigt_fit(df = 170, scale=350, bg = 0.2, is_fit = True)
-# fit.crystalball_fit(df = 0, scale=340, bg = 8, is_fit = 1, fwhm=40, crystalballparams={'Taillocation': -0.5, 'Tailamplitude': 2.6}, Au_Al_ratio=84.29/3415.9)
+# fit.voigt_fit(df = 170, scale=350, bg = 0.2, is_fit = True)
+fit.crystalball_fit(df = -30, scale=340, bg = 8, is_fit = 1, fwhm=40, crystalballparams={'Taillocation': -0.5, 'Tailamplitude': 2.6}, Au_Al_ratio=84.29/3415.9)
 fit.brokenaxes_draw([(-3250, -1400), (3300, 5150)])
