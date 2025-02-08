@@ -195,7 +195,7 @@ class HFS_data:
         """
         self.df = self.df[((self.df['TOF'] >= start * 2000) & (self.df['TOF'] <= end * 2000)) | (self.df['TOF'] == -1)]
     
-    def channel_cut(self, channel: list[int] = [1,2]):
+    def channel_cut(self, channel: list = [1,2]):
         """
         This is a method to cut the DataFrame by channel.
 

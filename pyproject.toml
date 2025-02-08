@@ -1,12 +1,12 @@
 [project]
 name = "plasen"
-version = "0.0.6"
+version = "0.0.8"
 authors = [
   { name="Zhou Yan", email="yanzh@pku.edu.cn" },
 ]
 description = "Processing toolbox for LAser Spectroscopy of Exotic Nuclei."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
