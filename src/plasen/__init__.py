@@ -315,7 +315,7 @@ class HFS_fit:
             if 'trans' not in self.fit_ini:
                 self.fit_ini['trans'] = 0
 
-    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}):
+    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict = None):
         import satlas as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
@@ -327,6 +327,8 @@ class HFS_fit:
             s_main.params['Bl'].vary = False
         s_main.params['Cu'].vary = False
         s_main.params['Cl'].vary = False
+
+        if boundaries is not None: s_main.set_boundaries(boundaries)
 
         if Au_Al_ratio is not None: s_main.fix_ratio(Au_Al_ratio, target='upper', parameter='A')
         
