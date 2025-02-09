@@ -338,6 +338,7 @@ class HFS_fit:
 
         self.fit_result_x = np.linspace(min(x), max(x), 1000)
         self.fit_result_y = s_main(self.fit_result_x)
+        self.fit_para_result = s_main.get_result_dict()
 
 
     def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None):
