@@ -4,6 +4,7 @@ from . import phys_calc
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import brokenaxes
 
 class HFS_data:
     def __init__(self, x_axis_name: str = 'Wavenumber'):
@@ -315,11 +316,15 @@ class HFS_fit:
             if 'trans' not in self.fit_ini:
                 self.fit_ini['trans'] = 0
 
-    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict = None):
+    def fit_with_satlas1(self, shape: str, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, params: dict = { 'a': -0.25}, boundaries: dict = None):
         import satlas as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
-        s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='crystalball', crystalballparams=crystalballparams)
+        if shape == 'crystalball':
+            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='crystalball', crystalballparams=params)
+        elif shape == 'asymmlorentzian':
+            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='asymmlorentzian', asymmetryparams=params)
+        
         if is_AB_fixed:        
             s_main.params['Au'].vary = False
             s_main.params['Al'].vary = False
@@ -337,10 +342,62 @@ class HFS_fit:
             s_main.display_chisquare_fit()
             self.fit_para_result = s_main.get_result_dict()
 
-        self.fit_result_x = np.linspace(min(x), max(x), 1000)
+        self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = s_main(self.fit_result_x)
-        
 
+
+    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict = None):
+        # import satlas as sat
+        # x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
+
+        # s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='crystalball', crystalballparams=crystalballparams)
+        # if is_AB_fixed:        
+        #     s_main.params['Au'].vary = False
+        #     s_main.params['Al'].vary = False
+        #     s_main.params['Bu'].vary = False
+        #     s_main.params['Bl'].vary = False
+        # s_main.params['Cu'].vary = False
+        # s_main.params['Cl'].vary = False
+
+        # if boundaries is not None: s_main.set_boundaries(boundaries)
+
+        # if Au_Al_ratio is not None: s_main.fix_ratio(Au_Al_ratio, target='upper', parameter='A')
+        
+        # if is_fit:
+        #     sat.chisquare_fit(s_main, x, self.y, self.yerr)
+        #     s_main.display_chisquare_fit()
+        #     self.fit_para_result = s_main.get_result_dict()
+
+        # self.fit_result_x = np.linspace(min(x), max(x), 1000)
+        # self.fit_result_y = s_main(self.fit_result_x)
+        self.fit_with_satlas1('crystalball', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, crystalballparams, boundaries)
+    
+    def asymmlorentzian_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, asymmetryparams: dict = { 'a': -0.25}, boundaries: dict = None):
+        # import satlas as sat
+        # x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
+
+        # s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='asymmlorentzian', asymmetryparams=asymmetryparams)
+        # if is_AB_fixed:        
+        #     s_main.params['Au'].vary = False
+        #     s_main.params['Al'].vary = False
+        #     s_main.params['Bu'].vary = False
+        #     s_main.params['Bl'].vary = False
+        # s_main.params['Cu'].vary = False
+        # s_main.params['Cl'].vary = False
+
+        # if boundaries is not None: s_main.set_boundaries(boundaries)
+
+        # if Au_Al_ratio is not None: s_main.fix_ratio(Au_Al_ratio, target='upper', parameter='A')
+        
+        # if is_fit:
+        #     sat.chisquare_fit(s_main, x, self.y, self.yerr)
+        #     s_main.display_chisquare_fit()
+        #     self.fit_para_result = s_main.get_result_dict()
+
+        # self.fit_result_x = np.linspace(min(x), max(x), 1000)
+        # self.fit_result_y = s_main(self.fit_result_x)
+        self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
+    
     def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None):
         import satlas2 as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
@@ -370,7 +427,7 @@ class HFS_fit:
             f.fit()
             print(f.reportFit())
 
-        self.fit_result_x = np.linspace(min(x), max(x), 1000)
+        self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = datasource.evaluate(self.fit_result_x)
 
     def draw(self):
@@ -384,8 +441,6 @@ class HFS_fit:
 
     def brokenaxes_draw(self, range: tuple):
 
-        import brokenaxes
-
         fig = plt.figure(figsize=(8, 6))
         bax = brokenaxes.brokenaxes(xlims=range)
 
@@ -396,4 +451,47 @@ class HFS_fit:
         bax.set_ylabel("Rate (cps)")
 
         bax.legend()
+        plt.show()
+
+class HFS_simulation:
+    def __init__(self, source_yield: float, efficiency: float, background_ratio: float, time: float, bin_num: int, scan_range: list, fit_ini: dict = None):
+        import satlas2 as sat
+        if fit_ini:
+            self.para = fit_ini
+        else:
+            self.para = {"I": 0, "J": [0, 0], "ABC": [0, 0, 0, 0, 0, 0], "fwhm": 30}
+
+        rate = source_yield * efficiency
+        self.model = sat.HFSModel(self.para['I'], self.para['J'], self.para['ABC'], 0, self.para['fwhm'],
+                    scale=rate * time / bin_num,
+                    background_params=[background_ratio * rate * time / bin_num],
+                    use_racah=True)
+        
+        x = np.linspace(scan_range[0], scan_range[1], 1000)
+        y = self.model.f(x)
+
+        data_x = np.linspace(scan_range[0], scan_range[1], bin_num)
+
+        data_y = sat.generateSpectrum(self.model, data_x)
+        yerr = np.sqrt(data_y)
+
+        fig = plt.figure()
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        ax.errorbar(data_x, data_y, yerr=np.sqrt(data_y), fmt='o', label='Data')
+
+        ax.plot(x, y, label='Initial guess')
+        ax.set_xlabel('Frequency (MHz)')
+        ax.set_ylabel('Counts')
+
+        datasource = sat.Source(data_x, data_y, yerr=yerr, name='Datafile1')
+        datasource.addModel(self.model)
+        # f = sat.Fitter()
+        # f.addSource(datasource)
+        # f.fit()
+        # print(f.reportFit())
+
+        # ax.plot(x, self.model.f(x), label='Fit')
+        # ax.legend(loc=0)
+        ax.legend(loc=0)
+
         plt.show()

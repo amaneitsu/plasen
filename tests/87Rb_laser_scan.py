@@ -28,5 +28,6 @@ rates = raw_data.count_rate(bin_width=10, is_draw=False, save_path='tests/87Rb_l
 fit = HFS_fit(rates)
 fit.import_json('example_data/87Rb_I=1.5.json')
 # fit.voigt_fit(df = 170, scale=350, bg = 0.2, is_fit = True)
-fit.crystalball_fit(df = -30, scale=340, bg = 8, is_fit = 1, fwhm=40, crystalballparams={'Taillocation': -0.5, 'Tailamplitude': 2.6}, Au_Al_ratio=84.29/3415.9)
+# fit.crystalball_fit(df = -30, scale=340, bg = 8, is_fit = 1, fwhm=40, crystalballparams={'Taillocation': -0.5, 'Tailamplitude': 2.6}, Au_Al_ratio=84.29/3415.9)
+fit.asymmlorentzian_fit(df = -30, scale=340, bg = 8, is_fit = 1, fwhm=40, asymmetryparams={'a': -0.5}, Au_Al_ratio=84.29/3415.9)
 fit.brokenaxes_draw([(-3250, -1400), (3300, 5150)])
