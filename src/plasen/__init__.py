@@ -429,7 +429,7 @@ class HFS_fit:
         
         if param_prior is not None: 
             for key in param_prior:
-                f.setParamPrior(datasource, s_main, key, param_prior[key][0], param_prior[key][1])
+                f.setParamPrior('Data', 'main', key, param_prior[key][0], param_prior[key][1])
 
         if is_fit:
             f.fit()
