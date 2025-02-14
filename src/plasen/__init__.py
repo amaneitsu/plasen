@@ -316,14 +316,16 @@ class HFS_fit:
             if 'trans' not in self.fit_ini:
                 self.fit_ini['trans'] = 0
 
-    def fit_with_satlas1(self, shape: str, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, params: dict = { 'a': -0.25}, boundaries: dict = None):
+    def fit_with_satlas1(self, shape: str, df: float = 0, fwhm: float = 30, scale: float = 1, bg: list = [0], is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, params: dict = { 'a': -0.25}, boundaries: dict = None):
         import satlas as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
+        if isinstance(bg, float): bg = [bg]
+
         if shape == 'crystalball':
-            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='crystalball', crystalballparams=params)
+            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, bg, shape='crystalball', crystalballparams=params)
         elif shape == 'asymmlorentzian':
-            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, [bg], shape='asymmlorentzian', asymmetryparams=params)
+            s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, bg, shape='asymmlorentzian', asymmetryparams=params)
         
         if is_AB_fixed:        
             s_main.params['Au'].vary = False
@@ -344,7 +346,6 @@ class HFS_fit:
 
         self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = s_main(self.fit_result_x)
-
 
     def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict = None):
         # import satlas as sat
