@@ -320,7 +320,7 @@ class HFS_fit:
         import satlas as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
-        if isinstance(bg, float): bg = [bg]
+        if isinstance(bg, float) or isinstance(bg, int): bg = [bg]
 
         if shape == 'crystalball':
             s_main = sat.HFSModel(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'], df, fwhm, scale, bg, shape='crystalball', crystalballparams=params)
@@ -399,7 +399,10 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
     
-    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None):
+    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, param_prior: dict = None):
+        """
+        This is a method to fit the data with Voigt profile using satlas2.
+        """
         import satlas2 as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
@@ -417,13 +420,17 @@ class HFS_fit:
         s_main.params['Cu'].vary = False
         s_main.params['Cl'].vary = False
         # s_main.params['FWHMG'].vary = False
-
-        if Au_Al_ratio is not None: f.setExpr(["Data___main___Au"], "Data___main___Al * " + str(Au_Al_ratio))
-
+        
         datasource.addModel(s_main)
         datasource.addModel(bg)
         f.addSource(datasource)
+
+        if Au_Al_ratio is not None: f.setExpr(["Data___main___Au"], "Data___main___Al * " + str(Au_Al_ratio))
         
+        if param_prior is not None: 
+            for key in param_prior:
+                f.setParamPrior(datasource, s_main, key, param_prior[key][0], param_prior[key][1])
+
         if is_fit:
             f.fit()
             print(f.reportFit())
