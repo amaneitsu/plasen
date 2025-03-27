@@ -175,6 +175,13 @@ class HFS_data:
         """
         self.df['Wavenumber'] = phys_calc.dopplerfactor(mass, self.df['InitEnergy'] * 1000) * self.df['Wavenumber']
         self.df.drop(columns=['InitEnergy'], inplace=True)
+
+    def doppler_shift_for_2_photons(self, mass: float, half: bool = True):
+        df = phys_calc.dopplerfactor(mass, self.df['InitEnergy'] * 1000)
+        coeff = df + 1 / df
+        if half == True: coeff /= 2
+        self.df['Wavenumber'] = coeff * self.df['Wavenumber']
+        self.df.drop(columns=['InitEnergy'], inplace=True)
     
     def wavenumber_cut(self, start: float, end: float):
         """
@@ -185,6 +192,18 @@ class HFS_data:
         - end: End of the wavenumber range (cm^-1)
         """
         self.df = self.df[(self.df['Wavenumber'] >= start) & (self.df['Wavenumber'] <= end)]
+
+    def wavenumber_cut_by_range(self, ranges: list):
+        """
+        This is a method to cut the DataFrame by multiple wavenumber ranges.
+
+        Parameters:
+        - ranges: List of wavenumber ranges, e.g., [[2, 5], [6, 7]]
+        """
+        mask = pd.Series([False] * len(self.df))
+        for start, end in ranges:
+            mask |= (self.df['Wavenumber'] >= start) & (self.df['Wavenumber'] <= end)
+        self.df = self.df[mask]
 
     def tof_cut(self, start: float, end: float):
         """
@@ -224,7 +243,11 @@ class HFS_data:
         """
         plt.hist(self.df[self.df['TOF'] != -1]['TOF'] / 2000, bins=bins)
         plt.show()
-    
+
+    def draw_hist2d(self, tof_bins: int = 100, hfs_bins: int = 100):
+        plt.hist2d(x = self.df[self.df['TOF'] != -1]['Wavenumber'], y = self.df[self.df['TOF'] != -1]['TOF'] / 2000, bins = [hfs_bins, tof_bins])
+        plt.show()
+
     def count_rate(self, bin_width: float = 20, bunch_per_second: float = 100 ,is_draw: bool = True, save_path: str = None) -> pd.DataFrame:
         """
         This is a method to calculate the count rate and error, and return the DataFrame.
@@ -399,7 +422,7 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
     
-    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, param_prior: dict = None):
+    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float = None, param_prior: dict = None):
         """
         This is a method to fit the data with Voigt profile using satlas2.
         """
@@ -409,7 +432,10 @@ class HFS_fit:
         datasource = sat.Source(x, self.y, yerr=self.yerr, name='Data')
         f = sat.Fitter()
 
-        s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=False)
+        if use_racah:
+            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=True)
+        else:
+            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=False)
         bg = sat.Polynomial([bg], 'bg')
 
         if is_AB_fixed:        
@@ -420,6 +446,10 @@ class HFS_fit:
         s_main.params['Cu'].vary = False
         s_main.params['Cl'].vary = False
         # s_main.params['FWHMG'].vary = False
+
+        if is_B_fixed:
+            s_main.params['Bu'].vary = False
+            s_main.params['Bl'].vary = False
         
         datasource.addModel(s_main)
         datasource.addModel(bg)
@@ -434,6 +464,7 @@ class HFS_fit:
         if is_fit:
             f.fit()
             print(f.reportFit())
+            self.fit_para_result = f.createResultDataframe()
 
         self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = datasource.evaluate(self.fit_result_x)
@@ -447,14 +478,16 @@ class HFS_fit:
         ax.legend()
         plt.show()
 
-    def brokenaxes_draw(self, range: tuple):
+    def brokenaxes_draw(self, range: tuple, y_log: bool = False, errorbar_alpha: float = 1):
 
         fig = plt.figure(figsize=(8, 6))
         bax = brokenaxes.brokenaxes(xlims=range)
 
         bax.plot(self.fit_result_x, self.fit_result_y, '-',lw=1., c= 'r', label='Fitting')
         # 绘图
-        bax.errorbar(self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz, self.y, self.yerr, fmt='ko', markersize=3., label='Data')
+        bax.errorbar(self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz, self.y, self.yerr, fmt='ko', markersize=3., label='Data', alpha=errorbar_alpha)
+        if y_log:
+            bax.set_yscale('log')
         bax.set_xlabel("Relative Frequency (MHz)")
         bax.set_ylabel("Rate (cps)")
 
@@ -502,4 +535,11 @@ class HFS_simulation:
         # ax.legend(loc=0)
         ax.legend(loc=0)
 
+        self.x = data_x
+        self.y = data_y
+        self.yerr = yerr
+
         plt.show()
+
+    def get_result(self):
+        return self.x, self.y, self.yerr

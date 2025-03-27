@@ -28,3 +28,10 @@ def dopplerfactor2Volt(mass, dopplerfactor):
     prop = 1 / np.sqrt(1 - beta ** 2) - 1
     Volt = prop * mass * c ** 2 / q
     return Volt
+
+def sigma2fwhm(sigma):
+    return sigma * 2 * np.sqrt(2 * np.log(2))
+
+def total_fwhm(fwhmg, fwhml):
+    fwhm = 0.5346 * fwhml + np.sqrt(0.2166 * fwhml * fwhml + fwhmg * fwhmg)
+    return fwhm
