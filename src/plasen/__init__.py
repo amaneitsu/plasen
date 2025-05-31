@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import brokenaxes
+import ast
 
 class HFS_data:
-    def __init__(self, x_axis_name: str = 'Wavenumber'):
+    def __init__(self, x_axis_name: str = 'Wavenumber', file_path: str | None = None):
         self.x_axis_name = x_axis_name
         self.df = pd.DataFrame(columns=['Timestamp', 'BunchNo', 'Channel', 'TOF', self.x_axis_name])
     
@@ -37,6 +38,33 @@ class HFS_data:
             self.df = pd.concat([self.df, pd.DataFrame(data, columns=self.df.columns)], ignore_index=True)
 
         self.df.sort_values(by='Timestamp', inplace=True)
+
+    def read_new_csv(self, file_path: str, x_axis_name: str = 'Voltage'):
+        """
+        This is a method to read the new CSV file format.
+
+        Parameters:
+        - file_path: Path to the CSV file
+        """
+        df_new = pd.read_csv(file_path)
+        df_new.dropna(axis=1, how='all', inplace=True)
+        if x_axis_name not in df_new.columns:
+            print(f"Warning: {x_axis_name} column not found in the CSV file")
+            return 0
+        if x_axis_name != 'Voltage':
+            df_new.rename(columns={x_axis_name: 'Wavenumber'}, inplace=True)
+        df_new.rename(columns={'time': 'Timestamp'}, inplace=True)
+        df_new['data'] = df_new['data'].apply(lambda x: ast.literal_eval(x))
+        df_new = df_new.explode('data')
+        df_new.dropna(subset=['data'], inplace=True)
+        df_new_expanded = df_new['data'].apply(pd.Series)
+        df_new_expanded.columns = ['BunchNo', 'Channel', 'TOF']
+        df_new = pd.concat([df_new.drop('data', axis = 1), df_new_expanded], axis=1)
+        
+        if self.df.empty:
+            self.df = df_new
+        else:
+            self.df = pd.concat([self.df, pd.DataFrame(df_new, columns=self.df.columns)], ignore_index=True)
 
     def read_folder(self, folder_path: str):
         """
@@ -136,7 +164,7 @@ class HFS_data:
     def dropna(self):
         self.df = self.df.dropna(subset=['TOF'])
 
-    def voltage_cali(self, BOP_file_path: str = None, gain_factor: float = 0.9988):
+    def voltage_cali(self, BOP_file_path: str | None = None, gain_factor: float = 0.9988):
         
         self.df['InitEnergy'] = self.df['InitEnergy'] * gain_factor
         
@@ -248,7 +276,7 @@ class HFS_data:
         plt.hist2d(x = self.df[self.df['TOF'] != -1]['Wavenumber'], y = self.df[self.df['TOF'] != -1]['TOF'] / 2000, bins = [hfs_bins, tof_bins])
         plt.show()
 
-    def count_rate(self, bin_width: float = 20, bunch_per_second: float = 100 ,is_draw: bool = True, save_path: str = None) -> pd.DataFrame:
+    def count_rate(self, bin_width: float = 20, bunch_per_second: float = 100 ,is_draw: bool = True, save_path: str | None = None) -> pd.DataFrame:
         """
         This is a method to calculate the count rate and error, and return the DataFrame.
 
@@ -297,7 +325,7 @@ class HFS_data:
         return rates
 
 class HFS_fit:
-    def __init__(self, data: pd.DataFrame, fit_ini: dict = None):
+    def __init__(self, data: pd.DataFrame, fit_ini: dict | None = None):
         '''
         Parameters:
         - data: HFS_data object
@@ -339,7 +367,7 @@ class HFS_fit:
             if 'trans' not in self.fit_ini:
                 self.fit_ini['trans'] = 0
 
-    def fit_with_satlas1(self, shape: str, df: float = 0, fwhm: float = 30, scale: float = 1, bg: list = [0], is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, params: dict = { 'a': -0.25}, boundaries: dict = None):
+    def fit_with_satlas1(self, shape: str, df: float = 0, fwhm: float = 30, scale: float = 1, bg: list | float = [0], is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float | None = None, params: dict = { 'a': -0.25}, boundaries: dict | None = None):
         import satlas as sat
         x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
@@ -370,7 +398,7 @@ class HFS_fit:
         self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = s_main(self.fit_result_x)
 
-    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict = None):
+    def crystalball_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float | None = None, crystalballparams: dict = { 'Taillocation': -0.25,'Tailamplitude': 6}, boundaries: dict | None = None):
         # import satlas as sat
         # x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
@@ -396,7 +424,7 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('crystalball', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, crystalballparams, boundaries)
     
-    def asymmlorentzian_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float = None, asymmetryparams: dict = { 'a': -0.25}, boundaries: dict = None):
+    def asymmlorentzian_fit(self, df: float = 0, fwhm: float = 30, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, Au_Al_ratio: float | None = None, asymmetryparams: dict = { 'a': -0.25}, boundaries: dict | None = None):
         # import satlas as sat
         # x = self.x - self.fit_ini['trans'] * phys_calc.invcm_to_MHz
 
@@ -422,7 +450,7 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
     
-    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float = None, param_prior: dict = None):
+    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float | None = None, param_prior: dict | None = None):
         """
         This is a method to fit the data with Voigt profile using satlas2.
         """
@@ -436,7 +464,7 @@ class HFS_fit:
             s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=True)
         else:
             s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=False)
-        bg = sat.Polynomial([bg], 'bg')
+        background = sat.Polynomial([bg], 'bg')
 
         if is_AB_fixed:        
             s_main.params['Au'].vary = False
@@ -452,7 +480,7 @@ class HFS_fit:
             s_main.params['Bl'].vary = False
         
         datasource.addModel(s_main)
-        datasource.addModel(bg)
+        datasource.addModel(background)
         f.addSource(datasource)
 
         if Au_Al_ratio is not None: f.setExpr(["Data___main___Au"], "Data___main___Al * " + str(Au_Al_ratio))
@@ -495,7 +523,7 @@ class HFS_fit:
         plt.show()
 
 class HFS_simulation:
-    def __init__(self, source_yield: float, efficiency: float, background_ratio: float, time: float, bin_num: int, scan_range: list, fit_ini: dict = None):
+    def __init__(self, source_yield: float, efficiency: float, background_ratio: float, time: float, bin_num: int, scan_range: list, fit_ini: dict | None = None):
         import satlas2 as sat
         if fit_ini:
             self.para = fit_ini

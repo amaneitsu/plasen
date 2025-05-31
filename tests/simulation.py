@@ -6,16 +6,16 @@ from plasen import HFS_simulation
 
 import pandas as pd
 
-time_one_side = 60 * 60 * 8
-bg_ratio = 1/150
+time_one_side = 60 * 60 * 5
+bg_ratio = 1/150 + 100/150
 # fit_ini = {"name": "97Rb", "I": 1.5, "J": [0.5, 1.5], "ABC": [2286.2, 55.2, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 90.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391}
-sim_1 = HFS_simulation(100, 1 / 200 * 0.6, bg_ratio, time = time_one_side, bin_num=50, scan_range = [-1750,-750], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 50.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
+sim_1 = HFS_simulation(100, 1 / 200 * 0.5, bg_ratio, time = time_one_side, bin_num=50, scan_range = [-1750,-750], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 50.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
 x_1,y_1,yerr_1 = sim_1.get_result()
 
 bg = bg_ratio * 100* 1 / 200 * 0.6 * time_one_side / 50
 
 
-sim_2 = HFS_simulation(100, 1 / 200 * 0.6, bg_ratio, time = time_one_side, bin_num=50, scan_range = [1200,2200], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 50.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
+sim_2 = HFS_simulation(100, 1 / 200 * 0.5, bg_ratio, time = time_one_side, bin_num=50, scan_range = [1200,2200], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 50.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
 x_2,y_2,yerr_2 = sim_2.get_result()
 # sim = HFS_simulation(100, 1 / 400, 10/1640, time = 60 * 60 * 12, bin_num=100, scan_range = [-1750,-750], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 90.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
 # sim = HFS_simulation(100, 1 / 400, 10/1640, time = 60 * 60 * 12, bin_num=100, scan_range = [1200,2200], fit_ini={"type": "scan_ranges", "name": "85Rb", "I": 2.5, "J": [0.5, 1.5], "ABC": [1011.0, 25.3, 0.0, 21.4, 0.0, 0.0], "trans": 12816.545, "fwhm": [20.0, 90.0], "range": 2000, "V": 29980.0, "mass": 84.91179, "laser": 12805.391})
