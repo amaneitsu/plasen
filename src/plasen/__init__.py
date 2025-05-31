@@ -164,7 +164,7 @@ class HFS_data:
     def dropna(self):
         self.df = self.df.dropna(subset=['TOF'])
 
-    def voltage_cali(self, BOP_file_path: str | None = None, gain_factor: float = 0.9988):
+    def voltage_cali(self, BOP_file_path: str | None = None, gain_factor: float = 0.9988, is_new: bool = False):
         
         self.df['InitEnergy'] = self.df['InitEnergy'] * gain_factor
         
@@ -175,8 +175,12 @@ class HFS_data:
                 volt_out = []
                 next(reader)
                 for row in reader:
-                    volt_in.append(float(row[1]))
-                    volt_out.append(float(row[2]))
+                    if is_new:
+                        volt_in.append(float(row[0]))
+                        volt_out.append(float(row[1]))
+                    else:
+                        volt_in.append(float(row[1]))
+                        volt_out.append(float(row[2]))
             k, b = np.polyfit(volt_in, volt_out, 1)  # 1 表示线性拟合
             # est=sm.OLS(volt_out,sm.add_constant(volt_in)).fit()
             # b, k = est.params
