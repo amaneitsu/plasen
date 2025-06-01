@@ -16,7 +16,8 @@ dependencies = [
   "matplotlib",
   "numpy",
   "satlas2",
-  "findiff"
+  "findiff",
+  "brokenaxes"
 ]
 license = {file = "LICENSE"}
 
