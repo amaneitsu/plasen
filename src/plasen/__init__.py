@@ -158,9 +158,17 @@ class HFS_data:
             self.df[col_name] = self.df[col_name].ffill().bfill()
         elif method == 'bfill':
             self.df[col_name] = self.df[col_name].bfill().ffill()
-        elif method == 'interpolate':
+        elif method == 'linear':
             self.df[col_name] = self.df[col_name].interpolate().ffill().bfill()
-    
+        elif method == 'nearest':
+            mask = self.df[col_name].isna()
+            if mask.any():
+                filled = self.df[~mask]
+                for idx in self.df[mask].index:
+                    ts = self.df.at[idx, 'Timestamp']
+                    nearest_idx = (filled['Timestamp'] - ts).abs().idxmin()
+                    self.df.at[idx, col_name] = filled.at[nearest_idx, col_name]
+
     def dropna(self):
         self.df = self.df.dropna(subset=['TOF'])
 
@@ -179,6 +187,7 @@ class HFS_data:
                         volt_in.append(float(row[0]))
                         volt_out.append(float(row[1]))
                     else:
+                        time = float(row[0])
                         volt_in.append(float(row[1]))
                         volt_out.append(float(row[2]))
             k, b = np.polyfit(volt_in, volt_out, 1)  # 1 表示线性拟合
@@ -186,7 +195,27 @@ class HFS_data:
             # b, k = est.params
             self.df['InitEnergy'] = self.df['InitEnergy'] - k * self.df['Voltage'] - b
             self.df.drop(columns=['Voltage'], inplace=True)
-                
+
+    def read_voltage_cali_csv(self, BOP_file_path: str, gain_factor: float = 0.9988):
+        with open(BOP_file_path) as file:
+            reader = csv.reader(file)
+            volt_in = []
+            volt_out = []
+            next(reader)
+            for row in reader:
+                timestamp = float(row[0])
+                volt_in.append(float(row[1]))
+                volt_out.append(float(row[2]))
+        k, b = np.polyfit(volt_in, volt_out, 1)
+        new_row = {'Timestamp': timestamp, 'BopK': k, 'BopB': b, 'GainFactor': gain_factor}
+        df_bop = pd.DataFrame([new_row])
+        self.df = pd.concat([self.df, df_bop], ignore_index=True)
+        self.df.sort_values(by='Timestamp', inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
+    
+    def voltage_cali_with_bop(self):
+        self.df['InitEnergy'] = self.df['InitEnergy'] * self.df['GainFactor'] - self.df['BopK'] * self.df['Voltage'] - self.df['BopB']
+        self.df.drop(columns=['Voltage', 'BopK', 'BopB', 'GainFactor'], inplace=True)
 
     def diode_cali(self, ref_freq: float):
         """
@@ -454,7 +483,7 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
     
-    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float | None = None, param_prior: dict | None = None):
+    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float | None = None, param_prior: dict | None = None, sidepeak_params: dict | None = None):
         """
         This is a method to fit the data with Voigt profile using satlas2.
         """
@@ -464,10 +493,11 @@ class HFS_fit:
         datasource = sat.Source(x, self.y, yerr=self.yerr, name='Data')
         f = sat.Fitter()
 
-        if use_racah:
-            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=True)
+        if sidepeak_params is not None:
+            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=use_racah, N = sidepeak_params['N'], offset = sidepeak_params['offset'], poisson = sidepeak_params['poisson'])
         else:
-            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=False)
+            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=use_racah)
+
         background = sat.Polynomial([bg], 'bg')
 
         if is_AB_fixed:        

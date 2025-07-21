@@ -1,0 +1,40 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+
+from plasen import HFS_data, HFS_fit
+from plasen import phys_calc
+
+raw_data = HFS_data('Voltage')
+raw_data.read_new_csv('example_data/92/scan_1208.csv', x_axis_name='Matisse')
+raw_data.read_cali_csv('example_data/92/cali_1208.csv')
+raw_data.fill_cali('InitEnergy', 'ffill')
+raw_data.fill_cali('Diode', 'ffill')
+raw_data.dropna()
+raw_data.read_voltage_cali_csv('example_data/92/bop_1108.csv')
+raw_data.read_voltage_cali_csv('example_data/92/bop_1209.csv')
+raw_data.fill_cali('BopK', 'nearest')
+raw_data.fill_cali('BopB', 'nearest')
+raw_data.fill_cali('GainFactor', 'nearest')
+raw_data.dropna()
+raw_data.voltage_cali_with_bop()
+raw_data.save_csv('test.csv')
+# print(raw_data.df.index)
+# # raw_data.voltage_cali('example_data/92/bop_1209.csv', is_new=False)
+# raw_data.diode_cali(384227848.5512209 * phys_calc.MHz_to_invcm)
+# raw_data.doppler_shift(mass = 91.919728)
+# raw_data.wavenumber_cut(12812,12818)
+# raw_data.tof_cut(3.5, 8)
+# # plt.hist(raw_data.df['Timestamp'], bins=1000)
+# # plt.show()
+# # raw_data.draw_tof(bins=50)
+# raw_data.channel_cut([1])
+# # raw_data.save_csv('test.csv')
+# rates = raw_data.count_rate(bin_width=18, is_draw=False)
+
+# fit = HFS_fit(rates)
+# fit.import_json('example_data/92Rb_I=0.json')
+# # fit.voigt_fit(df = -313, scale=300, bg = 50, is_fit = True, is_B_fixed=False, fwhmg = 50, fwhml = 50, use_racah=False, sidepeak_params={'N': 3, 'offset': 80, 'poisson':0.3})
+# fit.asymmlorentzian_fit(df = -313, scale=200, bg = 8.0, is_fit = 1, fwhm=100, asymmetryparams={'a': -0.1})
+# # fit.brokenaxes_draw(((-3600, -1500), (700, 2800)))
+# fit.draw()
