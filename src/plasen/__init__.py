@@ -109,7 +109,7 @@ class HFS_data:
 
         self.df.to_csv(file_path, index=False)
 
-    def read_cali_csv(self, file_path: str, name: str = 'InitEnergy', omit_value = None):
+    def read_cali_csv(self, file_path: str, name: str = 'InitEnergy', omit_value = None, mean_window: int = 0, is_draw: bool = True):
         """
         Parameters:
         - file_path: Path to the calibration CSV file
@@ -120,6 +120,17 @@ class HFS_data:
 
         if omit_value is not None:
             calibration = calibration[calibration[name] != omit_value]
+
+        if mean_window > 0:
+            calibration[name] = calibration[name].rolling(window=mean_window, center=True).mean()
+            calibration.dropna(subset=[name], inplace=True)
+
+        if is_draw:
+            plt.plot(calibration['Timestamp'], calibration[name], '.-')
+            plt.xlabel('Timestamp (s)')
+            plt.ylabel(name)
+            plt.title(f'{name} Calibration')
+            plt.show()
 
         # 合并calibration数据到self.df中，保留所有数据
         if name not in self.df.columns:
