@@ -6,6 +6,7 @@ import numpy as np
 import os
 import brokenaxes
 import ast
+import scipy.special
 
 class HFS_data:
     def __init__(self, x_axis_name: str = 'Wavenumber', file_path: str | None = None):
@@ -109,10 +110,15 @@ class HFS_data:
 
         self.df.to_csv(file_path, index=False)
 
-    def read_cali_csv(self, file_path: str, name: str = 'InitEnergy', omit_value = None, mean_window: int = 0, is_draw: bool = True):
+    def read_cali_csv(self, file_path: str, name: str = 'InitEnergy', omit_value = None, rolling: str = 'mean', mean_window: int = 0, is_draw: bool = True):
         """
         Parameters:
         - file_path: Path to the calibration CSV file
+        - name: Name of the calibration column
+        - omit_value: Value to omit from the calibration data
+        - rolling: Type of rolling average, 'mean' or 'Pascal'
+        - mean_window: Window size for rolling average, 0 means no rolling
+        - is_draw: Whether to draw the calibration curve
         """
         calibration = pd.read_csv(file_path)
         calibration.columns = ['Timestamp', name]
@@ -122,8 +128,16 @@ class HFS_data:
             calibration = calibration[calibration[name] != omit_value]
 
         if mean_window > 0:
-            calibration[name] = calibration[name].rolling(window=mean_window, center=True).mean()
+            if rolling == 'mean':
+                calibration[name] = calibration[name].rolling(window=mean_window, center=True).mean()
+            elif rolling == 'Pascal':
+                weights = np.array([scipy.special.comb(mean_window-1, k) for k in range(mean_window)])
+                weights = weights / weights.sum()
+                calibration[name] = calibration[name].rolling(window=mean_window, center=True).apply(lambda x: np.sum(weights * x), raw=True)
             calibration.dropna(subset=[name], inplace=True)
+        elif mean_window < 0:
+            # 计算calibration[name]的均值并赋值给所有行
+            calibration[name] = calibration[name].mean()
 
         if is_draw:
             plt.plot(calibration['Timestamp'], calibration[name], '.-')
@@ -260,10 +274,11 @@ class HFS_data:
         This is a method to cut the DataFrame by wavenumber.
 
         Parameters:
-        - start: Start of the wavenumber range (cm^-1)
-        - end: End of the wavenumber range (cm^-1)
+        - start: Start of the wavenumber range
+        - end: End of the wavenumber range
         """
-        self.df = self.df[(self.df['Wavenumber'] >= start) & (self.df['Wavenumber'] <= end)]
+        self.wavenumber_cut_by_range([[start, end]])
+        # self.df = self.df[(self.df['Wavenumber'] >= start) & (self.df['Wavenumber'] <= end)]
 
     def wavenumber_cut_by_range(self, ranges: list):
         """
@@ -272,7 +287,7 @@ class HFS_data:
         Parameters:
         - ranges: List of wavenumber ranges, e.g., [[2, 5], [6, 7]]
         """
-        mask = pd.Series([False] * len(self.df))
+        mask = pd.Series(False, index=self.df.index)
         for start, end in ranges:
             mask |= (self.df['Wavenumber'] >= start) & (self.df['Wavenumber'] <= end)
         self.df = self.df[mask]
@@ -437,6 +452,7 @@ class HFS_fit:
         if is_fit:
             sat.chisquare_fit(s_main, x, self.y, self.yerr)
             s_main.display_chisquare_fit()
+            self.goodness_of_fit = s_main.get_goodness_of_fit() # self.ndof_chi, self.chisqr_chi, self.redchi_chi, self.aic_chi, self.bic_chi)
             self.fit_para_result = s_main.get_result_dict()
 
         self.fit_result_x = np.linspace(min(x), max(x), 5000)
@@ -494,7 +510,7 @@ class HFS_fit:
         # self.fit_result_y = s_main(self.fit_result_x)
         self.fit_with_satlas1('asymmlorentzian', df, fwhm, scale, bg, is_fit, is_AB_fixed, Au_Al_ratio, asymmetryparams, boundaries)
     
-    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float | None = None, param_prior: dict | None = None, sidepeak_params: dict | None = None):
+    def voigt_fit(self, df: float = 0, fwhmg: float = 30, fwhml: float = 20, scale: float = 1, bg: float = 0, is_fit: bool = True, is_AB_fixed: bool = False, is_B_fixed: bool = False, use_racah: bool = False, Au_Al_ratio: float | None = None, param_prior: dict | None = None, sidepeak_params: dict | None = None, skew: float | None = None, boundaries: dict | None = None):
         """
         This is a method to fit the data with Voigt profile using satlas2.
         """
@@ -504,10 +520,34 @@ class HFS_fit:
         datasource = sat.Source(x, self.y, yerr=self.yerr, name='Data')
         f = sat.Fitter()
 
+        hfs_kwargs = {
+            'I': self.fit_ini['I'],
+            'J': self.fit_ini['J'],
+            'A': self.fit_ini['ABC'][:2],
+            'B': self.fit_ini['ABC'][2:4],
+            'C': self.fit_ini['ABC'][4:],
+            'df': df,
+            'fwhmg': fwhmg,
+            'fwhml': fwhml,
+            'name': 'main',
+            'scale': scale,
+            'racah': use_racah
+        }
+
         if sidepeak_params is not None:
-            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=use_racah, N = sidepeak_params['N'], offset = sidepeak_params['offset'], poisson = sidepeak_params['poisson'])
-        else:
-            s_main = sat.HFS(self.fit_ini['I'], self.fit_ini['J'], self.fit_ini['ABC'][:2], self.fit_ini['ABC'][2:4], self.fit_ini['ABC'][4:],df = df, fwhmg=fwhmg, fwhml=fwhml, name='main', scale=scale, racah=use_racah)
+            hfs_kwargs.update({
+                'N': sidepeak_params['N'],
+                'offset': sidepeak_params['offset'],
+                'poisson': sidepeak_params['poisson']
+            })
+
+        if skew is not None:
+            hfs_kwargs.update({
+                'peak': 'skewvoigt',
+                'peak_kwargs': {'skew': {'value': skew}}
+            })
+
+        s_main = sat.HFS(**hfs_kwargs)
 
         background = sat.Polynomial([bg], 'bg')
 
@@ -523,6 +563,13 @@ class HFS_fit:
         if is_B_fixed:
             s_main.params['Bu'].vary = False
             s_main.params['Bl'].vary = False
+
+        if boundaries is not None: # "key: {'min': value, 'max': value}
+            for key in boundaries:
+                if 'min' in boundaries[key]:
+                    s_main.params[key].min = boundaries[key]['min']
+                if 'max' in boundaries[key]:
+                    s_main.params[key].max = boundaries[key]['max']
         
         datasource.addModel(s_main)
         datasource.addModel(background)
@@ -538,6 +585,7 @@ class HFS_fit:
             f.fit()
             print(f.reportFit())
             self.fit_para_result = f.createResultDataframe()
+            self.goodness_of_fit = f.createMetadataDataframe()
 
         self.fit_result_x = np.linspace(min(x), max(x), 5000)
         self.fit_result_y = datasource.evaluate(self.fit_result_x)
