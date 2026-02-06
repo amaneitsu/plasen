@@ -249,7 +249,7 @@ class HFS_data:
         Parameters:
         - ref_freq: Reference frequency for the calibration
         """
-        self.df['Wavenumber'] = self.df['Diode'] - ref_freq + self.df['Wavenumber']
+        self.df['Wavenumber'] = - self.df['Diode'] + ref_freq + self.df['Wavenumber']
         self.df.drop(columns=['Diode'], inplace=True)
 
     def doppler_shift(self, mass: float):
@@ -302,6 +302,19 @@ class HFS_data:
         """
         self.df = self.df[((self.df['TOF'] >= start * 2000) & (self.df['TOF'] <= end * 2000)) | (self.df['TOF'] == -1)]
     
+    def tof_cut_by_range(self, ranges: list):
+        """
+        This is a method to cut the DataFrame by multiple TOF ranges.
+
+        Parameters:
+        - ranges: List of TOF ranges, e.g., [[2, 5], [6, 7]] in μs
+        """
+        mask = pd.Series(False, index=self.df.index)
+        for start, end in ranges:
+            mask |= (self.df['TOF'] >= start * 2000) & (self.df['TOF'] <= end * 2000)
+        mask |= (self.df['TOF'] == -1)
+        self.df = self.df[mask]
+
     def channel_cut(self, channel: list = [1,2]):
         """
         This is a method to cut the DataFrame by channel.
