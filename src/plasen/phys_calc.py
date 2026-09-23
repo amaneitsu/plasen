@@ -16,10 +16,17 @@ def beta(mass, V):
     beta = np.sqrt(1. - top / bottom)
     return beta
 
-def dopplerfactor(mass, V):
+def dopplerfactor_angle(mass, V, theta):
     betaFactor = beta(mass, V)
-    dopplerFactor = np.sqrt((1.0 + betaFactor) / (1.0 - betaFactor))
+    gamma = 1 / np.sqrt(1 - betaFactor ** 2)
+    dopplerFactor = 1 / (gamma * (1 - betaFactor * np.cos(theta)))
     return dopplerFactor
+
+def dopplerfactor(mass, V):
+    # betaFactor = beta(mass, V)
+    # dopplerFactor = np.sqrt((1.0 + betaFactor) / (1.0 - betaFactor))
+    # return dopplerFactor
+    return dopplerfactor_angle(mass, V, 0)
     
 def dopplerfactor2Volt(mass, dopplerfactor):
     mass = mass * AMU2KG
@@ -35,3 +42,8 @@ def sigma2fwhm(sigma):
 def total_fwhm(fwhmg, fwhml):
     fwhm = 0.5346 * fwhml + np.sqrt(0.2166 * fwhml * fwhml + fwhmg * fwhmg)
     return fwhm
+
+if __name__ == "__main__":
+    print(dopplerfactor(mass=90, V=20000))
+    print(dopplerfactor_angle(mass=90, V=20000, theta=0))
+    print(dopplerfactor_angle(mass=90, V=20000, theta=np.pi))

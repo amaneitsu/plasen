@@ -366,8 +366,8 @@ class HFS_data:
 
         bunches = self.df[self.df['Channel'] == -1].copy()
         counts = self.df[self.df['Channel'] != -1].copy()
-        bunches['binned'] = pd.cut(bunches['Wavenumber'], bins=bins, include_lowest=True)
-        counts['binned'] = pd.cut(counts['Wavenumber'], bins=bins, include_lowest=True)
+        bunches['binned'] = pd.cut(bunches['Wavenumber'], bins=bins, include_lowest=True, precision=10)
+        counts['binned'] = pd.cut(counts['Wavenumber'], bins=bins, include_lowest=True, precision=10)
         
         # bunches.to_csv('bunches.csv')
         # counts.to_csv('counts.csv')
